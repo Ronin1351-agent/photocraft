@@ -1,0 +1,36 @@
+name: Propose upstream PhotoCraft updates
+
+on:
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Compare upstream and open a review link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/storytold/photocraft.git
+          git fetch --no-tags upstream main
+          ahead=$(git rev-list --count HEAD..upstream/main)
+          if [ "$ahead" -eq 0 ]; then
+            echo "No upstream commits to review." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "$ahead upstream commits are available." >> "$GITHUB_STEP_SUMMARY"
+          echo "Review: https://github.com/storytold/photocraft/compare/main...Ronin1351-agent:photocraft:main" >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::$ahead upstream commits available for manual review. No merge or push performed."
